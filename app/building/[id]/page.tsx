@@ -173,7 +173,7 @@ export default function BuildingPage({ params }: { params: Promise<{ id: string 
               <Pill tone={selected.occupancy > 12 ? "warn" : selected.occupancy > 0 ? "ok" : "neutral"}>
                 {selected.occupancy === 0 ? "Empty" : `${selected.occupancy} present`}
               </Pill>
-              <span>Updated {time(new Date())}</span>
+              <span suppressHydrationWarning>Updated {time(new Date())}</span>
             </div>
           </div>
 

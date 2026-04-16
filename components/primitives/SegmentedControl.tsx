@@ -1,13 +1,23 @@
 "use client";
 
+/**
+ * Segmented control — comfortable size, clear active state.
+ *
+ * The active option fills with signal cyan, the rest are dim and clearly
+ * clickable on hover. A spring-animated highlight slides between options.
+ */
+
+import type { ComponentType, SVGProps } from "react";
 import { motion } from "motion/react";
 import { useId } from "react";
 import { cn } from "@/lib/utils/cn";
 
+type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
+
 type Option<V extends string> = {
   value: V;
   label: string;
-  Icon?: typeof motion.div;
+  Icon?: IconType;
 };
 
 type Props<V extends string> = {
@@ -15,28 +25,33 @@ type Props<V extends string> = {
   onChange: (v: V) => void;
   options: Option<V>[];
   size?: "sm" | "md" | "lg";
+  /** When false (default true), labels are sentence-case instead of mono caps. */
+  caps?: boolean;
   className?: string;
 };
 
 const SIZE = {
-  sm: "h-7 text-[10px] tracking-[0.18em] px-3",
-  md: "h-9 text-[11px] tracking-[0.2em] px-4",
-  lg: "h-12 text-[12px] tracking-[0.24em] px-6",
-};
+  sm: { btn: "h-8 px-3.5 text-[11px]", caps: "tracking-[0.16em]", icon: 12 },
+  md: { btn: "h-10 px-5 text-[12px]", caps: "tracking-[0.18em]", icon: 14 },
+  lg: { btn: "h-12 px-7 text-[13px]", caps: "tracking-[0.22em]", icon: 16 },
+} as const;
 
 export function SegmentedControl<V extends string>({
   value,
   onChange,
   options,
   size = "md",
+  caps = true,
   className,
 }: Props<V>) {
   const id = useId();
+  const s = SIZE[size];
   return (
     <div
+      role="radiogroup"
       className={cn(
-        "relative inline-flex items-center rounded-[var(--radius-sm)] border p-0.5",
-        "bg-[var(--color-surface-2)]",
+        "relative inline-flex items-stretch gap-0.5 rounded-[var(--radius-sm)] border-2 p-1",
+        "bg-[var(--color-surface-2)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]",
         className,
       )}
       style={{ borderColor: "var(--color-border-strong)" }}
@@ -46,22 +61,30 @@ export function SegmentedControl<V extends string>({
         return (
           <button
             key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={cn(
               "relative z-[1] inline-flex items-center justify-center gap-2 rounded-[4px]",
-              "font-mono uppercase font-medium transition-colors duration-200",
-              SIZE[size],
-              active ? "text-[var(--color-bg)]" : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]",
+              "font-medium transition-colors duration-200 ease-[var(--ease-omni)]",
+              caps && "font-mono uppercase",
+              caps && s.caps,
+              s.btn,
+              active
+                ? "text-[var(--color-bg)]"
+                : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-fg)]",
             )}
           >
             {active && (
               <motion.span
                 layoutId={`seg-${id}`}
-                className="absolute inset-0 -z-[1] rounded-[4px] bg-[var(--color-signal)]"
+                className="absolute inset-0 -z-[1] rounded-[4px] bg-[var(--color-signal)] shadow-[0_0_18px_-4px_var(--color-signal-glow)]"
                 transition={{ type: "spring", stiffness: 420, damping: 36 }}
               />
             )}
-            {opt.label}
+            {opt.Icon && <opt.Icon size={s.icon} strokeWidth={1.6} />}
+            <span>{opt.label}</span>
           </button>
         );
       })}

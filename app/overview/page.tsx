@@ -44,7 +44,7 @@ export default function OverviewPage() {
     : `${flaggedCount} building${flaggedCount > 1 ? "s" : ""} flagged for unusual draw`;
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-5 pb-6">
+    <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-4 pb-5">
       <div className="flex items-center justify-between gap-4">
         <SectionHeader index="01" label="Baseline" />
         <div className="flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)]">
@@ -55,7 +55,7 @@ export default function OverviewPage() {
 
       {/* Story strip — plain-English current state */}
       <StoryStrip
-        className="mt-5"
+        className="mt-4"
         eyebrow="Right now"
         headline={
           <>
@@ -63,16 +63,15 @@ export default function OverviewPage() {
             and {loadVerb}. {solarPhrase}; {flagPhrase}.
           </>
         }
-        detail="Hover any KPI for a 24-hour trend. Click into the map for spatial context."
         stats={[
-          { label: "Bldgs observed", value: "101", tone: "default" },
+          { label: "Bldgs", value: "101", tone: "default" },
           { label: "Flagged", value: String(flaggedCount), tone: flaggedCount > 0 ? "danger" : "ok" },
-          { label: "Alerts open", value: String(alertCount), tone: alertCount > 0 ? "warn" : "ok" },
+          { label: "Alerts", value: String(alertCount), tone: alertCount > 0 ? "warn" : "ok" },
         ]}
       />
 
       {/* Row 1 — KPI strip (4 cards) */}
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           index="K1"
           label="Current load"
@@ -119,50 +118,52 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Row 2 — campus map (8) + alert feed (4) */}
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <Card className="xl:col-span-8 flex flex-col p-0">
-          <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <CardTitle>Campus observed</CardTitle>
-            <Link
-              href="/map"
-              className="inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-muted)] hover:text-[var(--color-signal)]"
-            >
-              Open full map <ArrowRight size={11} strokeWidth={1.6} />
-            </Link>
-          </div>
-          <div className="relative h-[460px] flex-1 px-5 pb-5">
-            <div className="h-full w-full">
-              <CampusMap size="contain" allowModeToggle showScrubber={false} />
+      {/* Row 2 — campus map (7) + alert feed (5) — load curve sits beneath the map */}
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
+        <div className="flex flex-col gap-3 xl:col-span-8">
+          <Card className="flex flex-col p-0">
+            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+              <CardTitle>Campus observed</CardTitle>
+              <Link
+                href="/map"
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-muted)] hover:text-[var(--color-signal)]"
+              >
+                Open full map <ArrowRight size={11} strokeWidth={1.6} />
+              </Link>
             </div>
-          </div>
-        </Card>
+            <div className="relative h-[440px] px-4 pb-4">
+              <div className="h-full w-full">
+                <CampusMap size="contain" allowModeToggle showScrubber={false} />
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between px-4 pt-3 pb-1">
+              <CardTitle>Today's load — grid + solar</CardTitle>
+              <div className="flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)]">
+                <Legend swatch="var(--color-grid)" label="Grid" />
+                <Legend swatch="var(--color-solar)" label="Solar" />
+                <span className="font-mono text-[10px] tabular-nums">5-min · PHT</span>
+              </div>
+            </div>
+            <div className="px-2 pb-2">
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.42, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                style={{ minHeight: 130 }}
+              >
+                <LoadCurve height={130} />
+              </motion.div>
+            </div>
+          </Card>
+        </div>
 
         <div className="xl:col-span-4">
-          <AlertFeed limit={8} />
+          <AlertFeed limit={6} />
         </div>
       </div>
-
-      {/* Row 3 — load curve */}
-      <Card className="mt-4">
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <CardTitle>Today's load — grid + solar</CardTitle>
-          <div className="flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)]">
-            <Legend swatch="var(--color-grid)" label="Grid" />
-            <Legend swatch="var(--color-solar)" label="Solar" />
-            <span className="font-mono text-[10px] tabular-nums">5-min · PHT</span>
-          </div>
-        </div>
-        <div className="px-3 pb-3">
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.42, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <LoadCurve height={220} />
-          </motion.div>
-        </div>
-      </Card>
     </div>
   );
 }

@@ -11,9 +11,12 @@ import { useLive } from "@/lib/stores/useLive";
 import { findRoute } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 
-function useClock(): string {
-  const [s, setS] = useState<string>(() => fmtPHT(new Date()));
+function useClock(): string | null {
+  // Start as null so SSR and the first client render match. The real time is
+  // only set after mount, avoiding the SSR/CSR-timestamp hydration mismatch.
+  const [s, setS] = useState<string | null>(null);
   useEffect(() => {
+    setS(fmtPHT(new Date()));
     const id = setInterval(() => setS(fmtPHT(new Date())), 1000);
     return () => clearInterval(id);
   }, []);
@@ -72,8 +75,9 @@ export function Topbar() {
         <span
           className="font-mono text-[12px] tracking-[0.14em] text-[var(--color-fg-muted)] tabular-nums"
           aria-label="Current time, Manila"
+          suppressHydrationWarning
         >
-          {clock} <span className="text-[var(--color-fg-subtle)]">PHT</span>
+          {clock ?? "--:--:--"} <span className="text-[var(--color-fg-subtle)]">PHT</span>
         </span>
 
         <Pill tone={liveStarted ? "ok" : "neutral"} pulse={liveStarted}>

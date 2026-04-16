@@ -47,31 +47,62 @@ export default function AiPage() {
         </div>
       </div>
 
-      {/* Generate banner */}
-      <Card surface={1} className="mt-5 omni-live p-5">
+      {/* Generate banner — left has the engine status, right has the obvious primary action */}
+      <Card
+        surface={1}
+        className="mt-5 omni-live p-5"
+        style={{
+          borderColor: "var(--color-border-strong)",
+          borderWidth: 2,
+          boxShadow: generating
+            ? "0 0 0 1px var(--color-signal), 0 0 32px -8px var(--color-signal-glow)"
+            : undefined,
+        }}
+      >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="shrink-0 text-[var(--color-signal)]">
-              <OmniscientEye size={36} scanning thinking={generating} />
+              <OmniscientEye size={40} scanning thinking={generating} />
             </div>
             <div className="min-w-0">
               <p className="text-[11px] text-[var(--color-fg-subtle)]">Insight engine</p>
-              <p className="mt-0.5 truncate font-serif italic text-[18px] leading-snug text-[var(--color-fg)]">
+              <p className="mt-0.5 truncate font-serif italic text-[20px] leading-snug text-[var(--color-fg)]">
                 {generating ? "Watching the campus think…" : "Ready when you are."}
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--color-fg-muted)]">
+                Asks OMNISCIENT to scan today's telemetry and surface new opportunities.
               </p>
             </div>
           </div>
 
-          <Button
-            variant="primary"
-            size="lg"
+          <button
+            type="button"
             disabled={generating}
             onClick={() => generate(items, setItems, setGenerating)}
-            className="shrink-0 self-start md:self-auto"
+            className={cn(
+              "group relative inline-flex shrink-0 items-center gap-3 self-start md:self-auto",
+              "rounded-[var(--radius-sm)] px-7 py-3.5",
+              "font-mono text-[12px] font-medium uppercase tracking-[0.22em]",
+              "bg-[var(--color-signal)] text-[var(--color-bg)]",
+              "shadow-[0_0_24px_-6px_var(--color-signal-glow)]",
+              "ring-1 ring-[var(--color-signal)] ring-offset-2 ring-offset-[var(--color-surface-1)]",
+              "transition-all duration-200 ease-[var(--ease-omni)]",
+              "hover:brightness-110 hover:shadow-[0_0_36px_-4px_var(--color-signal-glow)]",
+              "active:scale-[0.98]",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
           >
-            <Sparkles size={14} strokeWidth={1.6} />
-            Generate new insights
-          </Button>
+            <Sparkles
+              size={16}
+              strokeWidth={1.8}
+              className={cn(
+                "transition-transform duration-200",
+                "group-hover:scale-110",
+                generating && "animate-spin",
+              )}
+            />
+            <span>{generating ? "Analyzing…" : "Generate new insights"}</span>
+          </button>
         </div>
 
         {generating && <GeneratingStream />}

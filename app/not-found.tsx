@@ -21,6 +21,7 @@ export default function NotFound() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.42, delay: 0.18 }}
         className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--color-fg-subtle)]"
+        suppressHydrationWarning
       >
         404 · {time(new Date())} PHT · path not found in this build
       </motion.p>

@@ -101,7 +101,10 @@ export function AlertFeed({ limit = 8 }: { limit?: number }) {
             <p className="font-serif italic text-[18px] text-[var(--color-fg-muted)]">
               All clear.
             </p>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-fg-subtle)]">
+            <p
+              className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-fg-subtle)]"
+              suppressHydrationWarning
+            >
               No active incidents · last checked {time(new Date())}
             </p>
           </div>

@@ -52,7 +52,10 @@ export default function Error({
           ))}
         </motion.h1>
 
-        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-danger)]">
+        <p
+          className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-danger)]"
+          suppressHydrationWarning
+        >
           UNHANDLED · {error.digest ?? error.name} · {time(new Date())}
         </p>
 

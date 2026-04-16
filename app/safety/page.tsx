@@ -160,7 +160,10 @@ export default function SafetyPage() {
           </div>
           <div className="flex items-center gap-3">
             <Pill tone={agitated ? "danger" : "ok"}>{agitated ? "EVENT" : "OK"}</Pill>
-            <span className="font-mono text-[10px] text-[var(--color-fg-subtle)] tabular-nums">
+            <span
+              className="font-mono text-[10px] text-[var(--color-fg-subtle)] tabular-nums"
+              suppressHydrationWarning
+            >
               {time(new Date())} PHT
             </span>
           </div>

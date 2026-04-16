@@ -42,25 +42,25 @@ export function KpiCard({
 
   return (
     <Card surface={1} hoverable className="overflow-hidden">
-      <div className="flex items-start justify-between px-5 pt-4">
+      <div className="flex items-start justify-between px-4 pt-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-fg-subtle)]">
           {label}
         </span>
         <div className="text-[var(--color-fg-muted)]" style={{ color: sparkColor }}>
-          <Sparkline values={spark} stroke="currentColor" fill={sparkFill} />
+          <Sparkline values={spark} stroke="currentColor" fill={sparkFill} width={72} height={22} />
         </div>
       </div>
 
-      <div className="px-5 pb-5">
+      <div className="px-4 pb-3">
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-2 flex items-baseline gap-2"
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-1 flex items-baseline gap-2"
         >
           <span
             className="font-serif italic leading-none tabular-nums text-[var(--color-fg)]"
-            style={{ fontSize: "clamp(2.4rem, 4.2vw, 3.6rem)" }}
+            style={{ fontSize: "clamp(1.7rem, 2.6vw, 2.25rem)" }}
           >
             {display ?? (
               <NumberFlow
@@ -72,19 +72,19 @@ export function KpiCard({
               />
             )}
           </span>
-          <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+          <span className="font-mono text-[10px] text-[var(--color-fg-subtle)] tabular-nums">
             {unit}
           </span>
         </motion.div>
 
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--color-fg-muted)]">
+        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--color-fg-muted)]">
           <span
             className={cn(
               "inline-flex items-center gap-0.5 tabular-nums",
               isBad ? "text-[var(--color-danger)]" : "text-[var(--color-ok)]",
             )}
           >
-            <Arrow size={11} strokeWidth={1.6} />
+            <Arrow size={10} strokeWidth={1.6} />
             {Math.abs(delta).toFixed(1)}%
           </span>
           <span className="text-[var(--color-fg-subtle)]">{comparison}</span>
