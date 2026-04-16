@@ -1,318 +1,204 @@
 "use client";
 
 import { useMemo } from "react";
-import dynamic from "next/dynamic";
-import { motion } from "motion/react";
-import { Battery, Wind } from "lucide-react";
+import { Battery, Sun } from "lucide-react";
 import { Card } from "@/components/primitives/Card";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
 import { CardTitle } from "@/components/primitives/CardTitle";
 import { Pill } from "@/components/primitives/Pill";
-import { NumberFlow } from "@/components/primitives/NumberFlow";
-import { Sparkline } from "@/components/primitives/Sparkline";
-import { RadialGauge } from "@/components/primitives/RadialGauge";
 import { StoryStrip } from "@/components/primitives/StoryStrip";
-import { kpiSnapshot, todayLoadCurve, currentSlotIndex } from "@/lib/mock/telemetry";
+import { EnergyFlowDiagram } from "@/components/power/EnergyFlowDiagram";
+import { BatteryGauge } from "@/components/power/BatteryGauge";
+import { SolarPanelStatus } from "@/components/power/SolarPanelStatus";
+import { PowerLoadCurve } from "@/components/power/PowerLoadCurve";
+import {
+  currentPowerFlow,
+  batterySocHourly,
+  kpiSnapshot,
+} from "@/lib/mock/telemetry";
 import { kw } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
-const SolarSun = dynamic(() => import("@/components/three/SolarSun").then((m) => m.SolarSun), {
-  ssr: false,
-  loading: () => null,
-});
-
 export default function PowerPage() {
+  const flow = useMemo(() => currentPowerFlow(), []);
+  const socHourly = useMemo(() => batterySocHourly(), []);
   const snap = useMemo(() => kpiSnapshot(), []);
-  const curve = useMemo(() => todayLoadCurve(), []);
-  const idx = useMemo(() => currentSlotIndex(), []);
 
-  const todaySolarKwh = curve.slice(0, idx + 1).reduce((s, p) => s + p.solar, 0) / 12;
-  const consumedKwh = curve.slice(0, idx + 1).reduce((s, p) => s + p.total, 0) / 12;
-  const storedKwh = Math.max(0, todaySolarKwh * 0.18);
-  const sparkSolar = curve.slice(Math.max(0, idx - 23), idx + 1).map((p) => p.solar);
-  const sparkConsumed = curve.slice(Math.max(0, idx - 23), idx + 1).map((p) => p.total);
+  // Derive current PHT hour for the SolarPanelStatus day/night rendering.
+  const hourPht = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat("en-PH", {
+      timeZone: "Asia/Manila",
+      hour: "2-digit",
+      hour12: false,
+    });
+    return Number(fmt.format(new Date()));
+  }, []);
 
-  // Plain-English summary numbers used in the StoryStrip
-  const peakSlot = curve.reduce((best, p, i) => (p.solar > curve[best].solar ? i : best), 0);
-  const peakLabel = curve[peakSlot].label;
-  const tariffLabel = idx >= 60 && idx < 216 ? "peak" : idx >= 36 && idx < 60 ? "morning shoulder" : "off-peak";
+  const tariffLabel =
+    hourPht >= 10 && hourPht < 18
+      ? "peak"
+      : hourPht >= 6 && hourPht < 10
+        ? "morning shoulder"
+        : "off-peak";
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-5 pb-6">
       <div className="flex items-center justify-between gap-4">
-        <SectionHeader index="03" label="Hybrid power" />
-        <Pill tone="solar">Solar online</Pill>
+        <SectionHeader index="03" label="Hybrid power flow" />
+        <div className="flex items-center gap-2">
+          <Pill tone={flow.solarKw > 0 ? "solar" : "neutral"} pulse={flow.solarKw > 0}>
+            Solar {flow.solarKw > 0 ? "online" : "offline"}
+          </Pill>
+          <Pill tone="grid">Grid {flow.gridImportKw > 0.1 ? "draw" : "idle"}</Pill>
+        </div>
       </div>
 
-      {/* Story strip */}
+      {/* Plain-English intro */}
       <StoryStrip
         className="mt-5"
-        eyebrow="Today's story"
+        eyebrow="Right now"
         headline={
           <>
-            Solar produced{" "}
+            Solar is producing{" "}
             <span className="font-mono tabular-nums text-[var(--color-solar)]">
-              {Math.round(todaySolarKwh)} kWh
+              {flow.solarKw.toFixed(1)} kW
             </span>{" "}
-            so far — covered{" "}
+            — covering{" "}
             <span className="font-mono tabular-nums text-[var(--color-solar)]">
-              {(snap.solarSharePct * 100).toFixed(0)}%
+              {percentShare(flow.solarKw, flow.campusLoadKw)}%
             </span>{" "}
-            of campus demand. Peak yield at {peakLabel}; {tariffLabel} tariff active.
+            of campus load. Battery at{" "}
+            <span className="font-mono tabular-nums text-[var(--color-ok)]">
+              {Math.round(flow.batterySoc * 100)}%
+            </span>
+            ; {tariffLabel} tariff active.
           </>
         }
-        detail="The two cards below are live: stored power feeds the vault, consumed power leaves the meter. Mix gauge shows the right-now ratio."
+        detail="Flow diagram below is live — each line's speed scales with the transfer. Zero flow renders dark."
         stats={[
-          { label: "Stored", value: `${storedKwh.toFixed(1)} kWh`, tone: "solar" },
-          { label: "Consumed", value: `${Math.round(consumedKwh)} kWh`, tone: "grid" },
-          { label: "Now", value: kw(snap.currentLoadKw), tone: "signal" },
+          { label: "Grid", value: kw(flow.gridImportKw), tone: "grid" },
+          { label: "Battery", value: `${flow.batteryKw >= 0 ? "+" : ""}${flow.batteryKw.toFixed(1)} kW`, tone: flow.batteryKw >= 0 ? "ok" : "warn" },
+          { label: "Load", value: kw(flow.campusLoadKw), tone: "signal" },
         ]}
       />
 
-      {/* Hero — twin oversized cards + R3F sun */}
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <HeroCard
-          className="xl:col-span-5"
-          title="Power stored"
-          icon={<Battery size={14} strokeWidth={1.5} className="text-[var(--color-solar)]" />}
-          value={storedKwh}
-          unit="kWh"
-          spark={sparkSolar}
-          sparkColor="var(--color-solar)"
-          progress={storedKwh / 480}
-          progressTone="solar"
-          footLeft="Vault capacity · 480 kWh"
-          footRight={`${((storedKwh / 480) * 100).toFixed(1)}% full`}
-        />
-
-        <HeroCard
-          className="xl:col-span-5"
-          title="Power consumed today"
-          icon={<Wind size={14} strokeWidth={1.5} className="text-[var(--color-grid)]" />}
-          value={consumedKwh}
-          decimals={0}
-          unit="kWh"
-          spark={sparkConsumed}
-          sparkColor="var(--color-grid)"
-          progress={Math.min(1, snap.currentLoadKw / 1500)}
-          progressTone="grid"
-          footLeft={`Current draw · ${kw(snap.currentLoadKw)}`}
-          footRight={`Δ vs ystd ${(((snap.currentLoadKw - snap.yesterdayLoadKw) / snap.yesterdayLoadKw) * 100).toFixed(1)}%`}
-        />
-
-        <Card surface={1} className="xl:col-span-2 grid place-items-center px-3 py-6">
-          <SolarSun size={220} />
-          <div className="mt-2 text-center">
-            <p className="text-[12px] font-medium text-[var(--color-fg)]">Solar roof</p>
-            <p className="mt-1 font-mono text-[10px] text-[var(--color-fg-subtle)] tabular-nums">
-              ONLINE · 1.42 MW
-            </p>
-          </div>
-        </Card>
+      {/* Row 2 — Energy Flow Diagram (hero) */}
+      <div className="mt-4">
+        <EnergyFlowDiagram flow={flow} />
       </div>
 
-      {/* Mix gauge + sub-panels */}
+      {/* Row 3 — Battery (5-col) + Solar (7-col) */}
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <Card surface={1} className="xl:col-span-5 flex flex-col items-center px-6 py-6">
-          <CardTitle className="self-start">Right-now mix</CardTitle>
-          <RadialGauge
-            solarShare={snap.solarSharePct}
-            size={300}
-            centerValue={`${(snap.solarSharePct * 100).toFixed(0)}%`}
-            centerUnit="SOLAR SHARE"
-          />
-          <div className="mt-2 grid w-full grid-cols-2 gap-4">
-            <MixStat label="Solar" value={kw(snap.currentLoadKw * snap.solarSharePct)} tone="solar" />
-            <MixStat label="Grid" value={kw(snap.currentLoadKw * (1 - snap.solarSharePct))} tone="grid" />
+        <Card surface={1} className="omni-live xl:col-span-5 px-6 py-6">
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              <span className="inline-flex items-center gap-2">
+                <Battery size={14} strokeWidth={1.5} className="text-[var(--color-ok)]" />
+                Battery storage
+              </span>
+            </CardTitle>
+            <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-fg-subtle)]">
+              {formatCharge(flow.batterySoc, flow.batteryCapacityKwh)}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <BatteryGauge
+              soc={flow.batterySoc}
+              capacityKwh={flow.batteryCapacityKwh}
+              kw={flow.batteryKw}
+              hourly={socHourly}
+            />
           </div>
         </Card>
 
         <Card surface={1} className="xl:col-span-7 px-6 py-6">
-          <CardTitle>Solar roof status</CardTitle>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <RoofMetric label="Cleaning cycle" value={68} suffix="%" detail="Next pass · 18:30" ringTone="signal" />
-            <RoofMetric label="Panel tilt" value={28} suffix="°" detail="Tracker · auto" ringTone="solar" />
-            <RoofMetric label="Yield today" value={Math.round(todaySolarKwh)} suffix="kWh" detail="Forecast +6.4%" ringTone="ok" />
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              <span className="inline-flex items-center gap-2">
+                <Sun size={14} strokeWidth={1.5} className="text-[var(--color-solar)]" />
+                Solar roof status
+              </span>
+            </CardTitle>
+            <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-fg-subtle)]">
+              1.42 MW peak rating
+            </span>
           </div>
 
-          <div className="mt-6 border-t border-[var(--color-border)] pt-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3 text-[12px] text-[var(--color-fg-muted)]">
-              <DetailRow label="Last cleaned" value="14 Apr · 04:12" />
-              <DetailRow label="Inverter health" value="OK · 99.4%" />
-              <DetailRow label="DC string check" value="OK · 24/24" />
-            </div>
+          <div className="mt-5">
+            <SolarPanelStatus hourPht={hourPht} />
           </div>
         </Card>
       </div>
+
+      {/* Row 4 — Load curve with battery band */}
+      <Card surface={1} className="mt-4 omni-live px-6 py-5">
+        <div className="flex items-center justify-between">
+          <CardTitle>Today · load, solar & battery</CardTitle>
+          <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-fg-subtle)]">
+            <LegendDot color="var(--color-grid)" label="Grid" />
+            <LegendDot color="var(--color-solar)" label="Solar" />
+            <LegendDot color="var(--color-ok)" label="Batt charge" />
+            <LegendDot color="var(--color-warn)" label="Batt disch" />
+          </div>
+        </div>
+        <div className="mt-3">
+          <PowerLoadCurve height={280} />
+        </div>
+      </Card>
 
       {/* Tariff strip */}
       <Card surface={1} className="mt-4 px-6 py-5">
         <div className="flex items-center justify-between">
           <CardTitle>Tariff</CardTitle>
-          <Pill tone="ok">Peak window over</Pill>
+          <Pill tone={tariffLabel === "peak" ? "warn" : "ok"}>
+            {tariffLabel === "peak" ? "Peak window" : "Off-peak"}
+          </Pill>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-4">
-          <TariffStop t="00–06" rate={9.4} />
-          <TariffStop t="06–10" rate={11.2} />
-          <TariffStop t="10–18" rate={14.6} active />
-          <TariffStop t="18–24" rate={12.8} />
+          <TariffStop t="00–06" rate={9.4} active={hourPht < 6} />
+          <TariffStop t="06–10" rate={11.2} active={hourPht >= 6 && hourPht < 10} />
+          <TariffStop t="10–18" rate={14.6} active={hourPht >= 10 && hourPht < 18} />
+          <TariffStop t="18–24" rate={12.8} active={hourPht >= 18} />
         </div>
       </Card>
+
+      <p className="mt-4 font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-fg-subtle)]">
+        OBSERVED · {snap.currentLoadKw.toFixed(0)} kW campus load · reseeds every
+        hour
+      </p>
     </div>
   );
 }
 
-function HeroCard({
-  className,
-  title,
-  icon,
-  value,
-  decimals = 1,
-  unit,
-  spark,
-  sparkColor,
-  progress,
-  progressTone,
-  footLeft,
-  footRight,
+function percentShare(a: number, b: number): number {
+  if (b <= 0) return 0;
+  return Math.round((a / b) * 100);
+}
+
+function formatCharge(soc: number, cap: number): string {
+  return `${(soc * cap).toFixed(0)} / ${cap.toFixed(0)} kWh`;
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+      {label}
+    </span>
+  );
+}
+
+function TariffStop({
+  t,
+  rate,
+  active,
 }: {
-  className?: string;
-  title: string;
-  icon: React.ReactNode;
-  value: number;
-  decimals?: number;
-  unit: string;
-  spark: number[];
-  sparkColor: string;
-  progress: number;
-  progressTone: "solar" | "grid";
-  footLeft: string;
-  footRight: string;
+  t: string;
+  rate: number;
+  active?: boolean;
 }) {
-  return (
-    <Card surface={1} className={cn("omni-live px-7 py-6", className)}>
-      <div className="flex items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        {icon}
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-6 flex items-baseline gap-3"
-      >
-        <NumberFlow
-          value={value}
-          format={{ maximumFractionDigits: decimals, minimumFractionDigits: decimals }}
-          className="font-serif italic leading-none text-[var(--color-fg)]"
-        />
-        <span className="font-mono text-[12px] text-[var(--color-fg-subtle)] tabular-nums">{unit}</span>
-      </motion.div>
-
-      <div className="mt-4 flex items-end justify-between gap-6">
-        <div style={{ color: sparkColor }}>
-          <Sparkline values={spark} stroke="currentColor" width={180} height={42} />
-        </div>
-        <div className="text-right text-[11px] text-[var(--color-fg-muted)]">
-          <p className="text-[var(--color-fg-subtle)]">{footLeft}</p>
-          <p className="mt-0.5 tabular-nums">{footRight}</p>
-        </div>
-      </div>
-
-      <ProgressBar value={progress} tone={progressTone} className="mt-3" />
-    </Card>
-  );
-}
-
-function MixStat({ label, value, tone }: { label: string; value: string; tone: "solar" | "grid" }) {
-  const color = tone === "solar" ? "var(--color-solar)" : "var(--color-grid)";
-  return (
-    <div className="flex flex-col gap-1 rounded-[var(--radius-sm)] border p-3" style={{ borderColor: "var(--color-border)" }}>
-      <span className="text-[11px] text-[var(--color-fg-subtle)]">{label}</span>
-      <span className="font-mono text-[14px] tabular-nums" style={{ color }}>{value}</span>
-    </div>
-  );
-}
-
-function ProgressBar({ value, tone, className }: { value: number; tone: "solar" | "grid"; className?: string }) {
-  const color = tone === "solar" ? "var(--color-solar)" : "var(--color-grid)";
-  return (
-    <div className={cn("h-1 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]", className)}>
-      <motion.div
-        className="h-full"
-        style={{ background: color }}
-        initial={{ width: 0 }}
-        animate={{ width: `${Math.min(1, Math.max(0, value)) * 100}%` }}
-        transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
-      />
-    </div>
-  );
-}
-
-function RoofMetric({
-  label,
-  value,
-  suffix,
-  detail,
-  ringTone,
-}: {
-  label: string;
-  value: number;
-  suffix: string;
-  detail: string;
-  ringTone: "signal" | "solar" | "ok";
-}) {
-  const max = suffix === "%" ? 100 : suffix === "°" ? 60 : 600;
-  const t = Math.min(1, value / max);
-  const stroke =
-    ringTone === "signal" ? "var(--color-signal)" : ringTone === "solar" ? "var(--color-solar)" : "var(--color-ok)";
-  const SIZE = 96;
-  const r = 38;
-  const c = 2 * Math.PI * r;
-  return (
-    <div className="flex items-center gap-4 rounded-[var(--radius-sm)] border p-4" style={{ borderColor: "var(--color-border)" }}>
-      <div className="relative grid place-items-center">
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={r} fill="none" stroke="var(--color-surface-3)" strokeWidth={3} />
-          <motion.circle
-            cx={SIZE / 2}
-            cy={SIZE / 2}
-            r={r}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={3}
-            strokeLinecap="round"
-            strokeDasharray={c}
-            initial={{ strokeDashoffset: c }}
-            animate={{ strokeDashoffset: c * (1 - t) }}
-            transition={{ duration: 0.92, ease: [0.22, 1, 0.36, 1] }}
-            transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-          />
-        </svg>
-        <span className="absolute font-mono text-[16px] tabular-nums text-[var(--color-fg)]">{value}</span>
-      </div>
-      <div>
-        <p className="text-[11px] text-[var(--color-fg-subtle)]">{label}</p>
-        <p className="mt-1 font-mono text-[13px] text-[var(--color-fg)] tabular-nums">{value}{suffix}</p>
-        <p className="mt-1 text-[10px] text-[var(--color-fg-subtle)]">{detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[var(--color-fg-subtle)]">{label}</p>
-      <p className="mt-0.5 font-mono text-[var(--color-fg)] tabular-nums">{value}</p>
-    </div>
-  );
-}
-
-function TariffStop({ t, rate, active }: { t: string; rate: number; active?: boolean }) {
   return (
     <div
       className={cn(
@@ -323,8 +209,10 @@ function TariffStop({ t, rate, active }: { t: string; rate: number; active?: boo
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">{t}</span>
-        {active && <Pill tone="warn">peak</Pill>}
+        <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+          {t}
+        </span>
+        {active && <Pill tone="warn">active</Pill>}
       </div>
       <p className="mt-2 font-mono text-[18px] tabular-nums text-[var(--color-fg)]">
         ₱{rate.toFixed(2)}

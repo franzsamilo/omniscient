@@ -26,7 +26,7 @@ const SpatialRenderer = dynamic(
 );
 
 type Mode = "plan" | "spatial";
-type Layer = "heatmap" | "occupancy" | "water" | "flags-only" | "clean";
+type Layer = "heatmap" | "occupancy" | "water" | "environment" | "flags-only" | "clean";
 
 export type CampusMapProps = {
   mode?: Mode;
@@ -75,7 +75,7 @@ export function CampusMap({
     const onMode = () => setMode((m) => (m === "plan" ? "spatial" : "plan"));
     const onLayer = () =>
       setLayer((l) => {
-        const order: Layer[] = ["heatmap", "occupancy", "water", "flags-only", "clean"];
+        const order: Layer[] = ["heatmap", "occupancy", "water", "environment", "flags-only", "clean"];
         const i = order.indexOf(l);
         return order[(i + 1) % order.length];
       });

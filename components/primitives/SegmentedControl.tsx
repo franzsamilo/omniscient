@@ -27,13 +27,15 @@ type Props<V extends string> = {
   size?: "sm" | "md" | "lg";
   /** When false (default true), labels are sentence-case instead of mono caps. */
   caps?: boolean;
+  /** When true (default), every button claims equal width — balanced regardless of label length. */
+  uniform?: boolean;
   className?: string;
 };
 
 const SIZE = {
-  sm: { btn: "h-8 px-3.5 text-[11px]", caps: "tracking-[0.16em]", icon: 12 },
-  md: { btn: "h-10 px-5 text-[12px]", caps: "tracking-[0.18em]", icon: 14 },
-  lg: { btn: "h-12 px-7 text-[13px]", caps: "tracking-[0.22em]", icon: 16 },
+  sm: { btn: "h-8 text-[11px]", px: "px-4", min: "min-w-[72px]", caps: "tracking-[0.16em]", icon: 12 },
+  md: { btn: "h-10 text-[12px]", px: "px-5", min: "min-w-[96px]", caps: "tracking-[0.18em]", icon: 14 },
+  lg: { btn: "h-12 text-[13px]", px: "px-7", min: "min-w-[128px]", caps: "tracking-[0.22em]", icon: 16 },
 } as const;
 
 export function SegmentedControl<V extends string>({
@@ -42,6 +44,7 @@ export function SegmentedControl<V extends string>({
   options,
   size = "md",
   caps = true,
+  uniform = true,
   className,
 }: Props<V>) {
   const id = useId();
@@ -50,11 +53,15 @@ export function SegmentedControl<V extends string>({
     <div
       role="radiogroup"
       className={cn(
-        "relative inline-flex items-stretch gap-0.5 rounded-[var(--radius-sm)] border-2 p-1",
+        "relative rounded-[var(--radius-sm)] border-2 p-1",
         "bg-[var(--color-surface-2)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]",
+        uniform ? "grid gap-0.5" : "inline-flex items-stretch gap-0.5",
         className,
       )}
-      style={{ borderColor: "var(--color-border-strong)" }}
+      style={{
+        borderColor: "var(--color-border-strong)",
+        gridTemplateColumns: uniform ? `repeat(${options.length}, minmax(0,1fr))` : undefined,
+      }}
     >
       {options.map((opt) => {
         const active = opt.value === value;
@@ -71,6 +78,7 @@ export function SegmentedControl<V extends string>({
               caps && "font-mono uppercase",
               caps && s.caps,
               s.btn,
+              uniform ? "w-full" : cn(s.px, s.min),
               active
                 ? "text-[var(--color-bg)]"
                 : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-fg)]",

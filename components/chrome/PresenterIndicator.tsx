@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { useUi } from "@/lib/stores/useUi";
 
+/**
+ * Presenter mode side-effects only — no visible pill (intentionally removed
+ * per user feedback; the corner badge was noisy on every route). Pressing
+ * `P` still toggles the cursor-auto-hide + animation-slowdown behaviors.
+ */
 export function PresenterIndicator() {
   const presenter = useUi((s) => s.presenter);
 
@@ -38,21 +42,5 @@ export function PresenterIndicator() {
     );
   }, [presenter]);
 
-  return (
-    <AnimatePresence>
-      {presenter && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
-          className="pointer-events-none fixed right-4 top-16 z-[70] inline-flex items-center gap-2 rounded-full border bg-[var(--color-surface-1)] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-signal)]"
-          style={{ borderColor: "var(--color-border-strong)" }}
-        >
-          <span className="size-1.5 rounded-full bg-[var(--color-signal)] animate-[pulse_1.4s_ease-in-out_infinite]" />
-          PRESENTING
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  return null;
 }

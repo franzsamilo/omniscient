@@ -8,6 +8,7 @@ import { Pill } from "@/components/primitives/Pill";
 import { Card } from "@/components/primitives/Card";
 import { Button } from "@/components/primitives/Button";
 import { Seismograph } from "@/components/charts/Seismograph";
+import { GasSection } from "@/components/safety/GasSection";
 import { useControls } from "@/lib/stores/useControls";
 import { useTicker } from "@/lib/stores/useTicker";
 import { nonCriticalDevices } from "@/lib/mock/devices";
@@ -134,7 +135,7 @@ export default function SafetyPage() {
 
       {/* Page content */}
       <div className="flex items-center justify-between gap-4">
-        <SectionHeader index="06" label="Seismic & hazard" />
+        <SectionHeader index="01" label="Seismic" />
         <div className="flex items-center gap-2">
           {drillActive && (
             <Pill tone="danger" pulse>
@@ -147,8 +148,9 @@ export default function SafetyPage() {
         </div>
       </div>
 
-      {/* Hero — seismograph + RUN DRILL button */}
-      <Card surface={1} className="mt-5 omni-live overflow-hidden p-5">
+      {/* Hero — seismograph + RUN DRILL button (no overflow-hidden: glow ring
+          around the drill button extends past the card edge by design). */}
+      <Card surface={1} className="mt-5 omni-live p-5">
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <p className="text-[11px] text-[var(--color-fg-subtle)]">
@@ -203,13 +205,13 @@ export default function SafetyPage() {
       {/* Lower row: breaker tree + recovery checklist */}
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Card surface={1} className="xl:col-span-7 p-5">
-          <SectionHeader index="06A" label="Breaker tree" />
+          <SectionHeader index="01A" label="Breaker tree" />
           <BreakerTree drillActive={drillActive} />
         </Card>
 
         <Card surface={1} className="xl:col-span-5 p-5">
           <div className="flex items-center justify-between">
-            <SectionHeader index="06B" label="Post-event checklist" />
+            <SectionHeader index="01B" label="Post-event checklist" />
             {phase === "recovery" && (
               <Button size="sm" variant="outline" onClick={reset}>
                 Reset
@@ -250,6 +252,11 @@ export default function SafetyPage() {
             </ul>
           )}
         </Card>
+      </div>
+
+      {/* Gas & air hazard detection — CLAUDE-UPDATES PATCH 9 */}
+      <div className="mt-6">
+        <GasSection />
       </div>
     </div>
   );

@@ -30,13 +30,23 @@ function bId(name: string): number | null {
   return BUILDINGS.find((b) => b.name === name)?.id ?? null;
 }
 
-const NOW = Date.now();
+/** Fixed pivot — module runs at both SSR and CSR, so Date.now() drifted. */
+const NOW = new Date("2026-04-17T00:00:00Z").getTime();
 
 function series(base: number, save: number): { baseline: number; proposed: number }[] {
+  // Deterministic per-series jitter — Math.random() at module init caused SSR/CSR drift.
+  // Seed xorshift from the inputs so each (base, save) combo has stable output.
+  let n = ((Math.floor(base * 1000) ^ Math.floor(save * 1e6)) + 1) >>> 0;
+  const nextJitter = () => {
+    n ^= n << 13; n >>>= 0;
+    n ^= n >>> 17;
+    n ^= n << 5; n >>>= 0;
+    return (n / 0xFFFFFFFF) * 0.1;
+  };
   return Array.from({ length: 24 }, (_, i) => {
     const h = i;
     const peak = Math.exp(-Math.pow((h - 13) / 4, 2));
-    const baseline = base * (0.4 + peak * 0.6) * (0.95 + Math.random() * 0.1);
+    const baseline = base * (0.4 + peak * 0.6) * (0.95 + nextJitter());
     const proposed = baseline * (1 - save) + 1.5;
     return { baseline: round1(baseline), proposed: round1(proposed) };
   });

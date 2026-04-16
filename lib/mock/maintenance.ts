@@ -2,6 +2,9 @@ import { BUILDINGS } from "@/lib/mock/buildings";
 import { streamRng, pick, range, rangeInt } from "@/lib/mock/seed";
 import { pad } from "@/lib/utils/format";
 
+/** Fixed pivot — the seed fires at module init (SSR + CSR); Date.now() drifts. */
+const MAINTENANCE_SEED_EPOCH = new Date("2026-04-17T00:00:00Z").getTime();
+
 export type TicketStatus = "Requested" | "Scheduled" | "In Progress" | "Done";
 export type TicketKind = "electrical" | "hvac" | "plumbing" | "carpentry" | "data" | "lighting";
 export type Priority = "low" | "medium" | "high";
@@ -89,7 +92,7 @@ function generateTickets(): MaintenanceTicket[] {
       priority,
       status,
       requestedBy: pick(rng, REQUESTERS),
-      requestedAt: Date.now() - rangeInt(rng as never, 1, 240) * 60_000,
+      requestedAt: MAINTENANCE_SEED_EPOCH - rangeInt(rng as never, 1, 240) * 60_000,
       description: undefined,
     });
   }

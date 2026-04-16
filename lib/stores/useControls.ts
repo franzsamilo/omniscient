@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { DEVICES, type Device } from "@/lib/mock/devices";
+import { streamRng } from "@/lib/mock/seed";
 
 export type MasterMode = "auto" | "semi-auto" | "manual";
 
@@ -28,11 +29,14 @@ type ControlsState = {
 const OVERRIDE_MINUTES = 30;
 
 function seedInitial(): Record<string, DeviceState> {
+  // Deterministic — Math.random() at module init caused SSR/CSR hydration
+  // drift because the server and client computed different initial device
+  // on/off layouts. Seeded RNG produces identical output either side.
+  const rng = streamRng("controls:seed");
   const map: Record<string, DeviceState> = {};
   for (const d of DEVICES) {
-    // Most things are on by default; some randomly off to look real.
     map[d.id] = {
-      on: d.critical ? true : Math.random() > 0.18,
+      on: d.critical ? true : rng() > 0.18,
       manualOverrideUntil: null,
     };
   }

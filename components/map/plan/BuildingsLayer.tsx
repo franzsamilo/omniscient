@@ -12,10 +12,20 @@ type Props = {
   selectedId: number | null;
   flagged: Set<number>;
   intensity: Record<number, number>;
-  layer: "heatmap" | "occupancy" | "water" | "flags-only" | "clean";
+  layer: "heatmap" | "occupancy" | "water" | "environment" | "flags-only" | "clean";
   onHover: (b: Building | null) => void;
   onSelect?: (b: Building) => void;
 };
+
+/** Map deviation intensity 0..1 (0.5 = setpoint) → temp-heat ramp. */
+function environmentFill(intensity: number): string {
+  // Cold: <0.4 → cool blue tint. Neutral: 0.4–0.6 → ok green. Warm: >0.6 → orange→red.
+  if (intensity < 0.35) return "color-mix(in oklch, var(--color-surface-3) 45%, var(--color-grid))";
+  if (intensity < 0.5) return "color-mix(in oklch, var(--color-surface-3) 60%, var(--color-grid))";
+  if (intensity < 0.6) return "color-mix(in oklch, var(--color-surface-3) 55%, var(--color-ok))";
+  if (intensity < 0.75) return "color-mix(in oklch, var(--color-surface-3) 40%, var(--color-warn))";
+  return "color-mix(in oklch, var(--color-surface-3) 20%, var(--color-danger))";
+}
 
 /** Map intensity 0..1 → fill color along the heatmap ramp. */
 function heatmapFill(intensity: number): string {
@@ -62,6 +72,10 @@ export function BuildingsLayer({
           strokeOpacity = 0.45;
         } else if (layer === "water") {
           fill = `color-mix(in oklch, var(--color-surface-3) ${100 - intens * 50}%, var(--color-grid))`;
+          strokeOpacity = 0.5;
+        } else if (layer === "environment") {
+          // 0.5 = at setpoint. Below = cool (blue), above = warm (orange/red).
+          fill = environmentFill(intens);
           strokeOpacity = 0.5;
         } else if (layer === "flags-only") {
           fill = isFlagged ? "color-mix(in oklch, var(--color-surface-3) 60%, var(--color-danger))" : "var(--color-surface-3)";

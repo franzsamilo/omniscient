@@ -1,17 +1,18 @@
 "use client";
 
-import { Map as MapIcon, Box, Flame, Users, Droplets, Flag, Eye } from "lucide-react";
+import { Map as MapIcon, Box, Flame, Users, Droplets, Thermometer, Flag, Eye } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type Mode = "plan" | "spatial";
-type Layer = "heatmap" | "occupancy" | "water" | "flags-only" | "clean";
+type Layer = "heatmap" | "occupancy" | "water" | "environment" | "flags-only" | "clean";
 
 const LAYERS: Array<{ key: Layer; label: string; Icon: typeof Flame; tone: string }> = [
-  { key: "heatmap",    label: "Heatmap",    Icon: Flame,    tone: "var(--color-warn)" },
-  { key: "occupancy",  label: "Occupancy",  Icon: Users,    tone: "var(--color-signal)" },
-  { key: "water",      label: "Water",      Icon: Droplets, tone: "var(--color-grid)" },
-  { key: "flags-only", label: "Flags only", Icon: Flag,     tone: "var(--color-danger)" },
-  { key: "clean",      label: "Clean",      Icon: Eye,      tone: "var(--color-fg-muted)" },
+  { key: "heatmap",     label: "Heatmap",     Icon: Flame,       tone: "var(--color-warn)" },
+  { key: "occupancy",   label: "Occupancy",   Icon: Users,       tone: "var(--color-signal)" },
+  { key: "water",       label: "Water",       Icon: Droplets,    tone: "var(--color-grid)" },
+  { key: "environment", label: "Environment", Icon: Thermometer, tone: "var(--color-ok)" },
+  { key: "flags-only",  label: "Flags only",  Icon: Flag,        tone: "var(--color-danger)" },
+  { key: "clean",       label: "Clean",       Icon: Eye,         tone: "var(--color-fg-muted)" },
 ];
 
 type Props = {

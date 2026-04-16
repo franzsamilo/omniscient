@@ -9,7 +9,7 @@ import { StreetsLayer } from "./StreetsLayer";
 import { FlagsLayer } from "./FlagsLayer";
 import { LabelsLayer } from "./LabelsLayer";
 
-type LayerKind = "heatmap" | "occupancy" | "water" | "flags-only" | "clean";
+type LayerKind = "heatmap" | "occupancy" | "water" | "environment" | "flags-only" | "clean";
 
 type Props = {
   hoveredId: number | null;

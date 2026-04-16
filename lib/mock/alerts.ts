@@ -36,10 +36,12 @@ const TITLES_BY_SEVERITY: Record<AlertSeverity, string[]> = {
   ],
 };
 
-/** Seed an initial feed of N alerts. */
+/** Fixed pivot — no Date.now() at seed time so SSR/CSR produce identical IDs. */
+const ALERTS_SEED_EPOCH = new Date("2026-04-17T00:00:00Z").getTime();
+
+/** Seed an initial feed of N alerts. Deterministic — live alerts push via useLive. */
 export function seedAlerts(count = 8): Alert[] {
   const rng = streamRng("alerts:seed");
-  const now = Date.now();
   const alerts: Alert[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -49,8 +51,8 @@ export function seedAlerts(count = 8): Alert[] {
     const title = pick(rng, TITLES_BY_SEVERITY[sev]);
     const minutesAgo = rangeInt(rng, 1, 240);
     alerts.push({
-      id: `A-${(now - i * 1000).toString(36)}-${i}`,
-      ts: now - minutesAgo * 60_000,
+      id: `A-seed-${i}-${b.id}`,
+      ts: ALERTS_SEED_EPOCH - minutesAgo * 60_000,
       severity: sev,
       buildingId: b.id,
       title,

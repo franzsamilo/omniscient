@@ -119,8 +119,15 @@ export default function SettingsPage() {
                   variant="danger"
                   size="md"
                   onClick={() => {
-                    sessionStorage.removeItem("omniscient:seen-intro");
-                    location.reload();
+                    // Full demo reset — nuke any persisted keys, then land
+                    // on `/` so the GSAP intro plays again from a cold start.
+                    try {
+                      sessionStorage.clear();
+                      localStorage.clear();
+                    } catch {
+                      // storage blocked (e.g. private mode) — reload anyway
+                    }
+                    location.assign("/");
                   }}
                 >
                   Yes, reset
